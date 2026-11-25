@@ -5,8 +5,8 @@ rows_in_period_before_deduplication,4097
 exact_duplicates_removed,0
 final_rows,4097
 rows_with_missing_rates,0
-first_observation,2010/1/4
-last_observation,2025/12/31
+first_observation,2010-01-04
+last_observation,2025-12-31
 base_currency,EUR
 quote_definition,Foreign currency units per 1 EUR
 currencies,"CNY, USD, JPY, GBP, HKD, CHF, AUD, CAD"

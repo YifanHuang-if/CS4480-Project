@@ -1,0 +1,16 @@
+key,value
+python,3.11.9
+platform,Windows-10-10.0.22631-SP0
+logical_cpus,16
+numpy,2.4.6
+pandas,3.1.1
+window,60
+repeats,5
+workers,"2, 4, 8"
+seed,20261122
+synthetic_model,Three-factor t(5) model plus idiosyncratic t(5) noise
+workloads,"8x4096, 16x4096, 32x4096, 64x4096, 8x1024, 8x2048"
+timing_scope,Map/loop call only; validation and CSV I/O excluded
+process_pool_data,Worker-local copy broadcast once via initializer; tasks are pair indices
+thread_pool_data,Shared in-process arrays; no serialisation
+baseline,Serial median of five repetitions in the same workload

@@ -22,10 +22,11 @@ def main():
     np.fill_diagonal(distance, 0)
     tree = linkage(squareform(distance, checks=True), method="average")
     pd.DataFrame(distance, index=CURRENCIES, columns=CURRENCIES).to_csv(
-        OUTPUT / "currency_correlation_distances.csv", index_label="currency"
+        OUTPUT / "currency_correlation_distances.csv", index_label="currency",
+        float_format="%.9f"
     )
     pd.DataFrame(tree, columns=["left_node", "right_node", "distance", "size"]).to_csv(
-        OUTPUT / "currency_cluster_linkage.csv", index=False
+        OUTPUT / "currency_cluster_linkage.csv", index=False, float_format="%.9f"
     )
     # Multiple cuts illustrate sensitivity; no optimal cluster count is claimed.
     assignments = pd.DataFrame({"currency": CURRENCIES})

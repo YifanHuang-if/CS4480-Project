@@ -10,25 +10,28 @@ Fresh-pool timing includes process startup, data transfer, computation, result c
 
 | Comparison workers | Method | Median (ms) | Speedup |
 |---|---|---:|---:|
-| 2 | Fresh pool | 711.785 | 0.015 |
-| 2 | Reused pool | 9.232 | 1.120 |
-| 2 | Reused + batched | 8.936 | 1.157 |
-| 2 | Serial | 10.338 | 1.000 |
-| 4 | Fresh pool | 818.837 | 0.013 |
-| 4 | Reused pool | 7.390 | 1.394 |
-| 4 | Reused + batched | 5.119 | 2.013 |
-| 4 | Serial | 10.304 | 1.000 |
+| 2 | Fresh pool | 980.875 | 0.018 |
+| 2 | Reused pool | 20.016 | 0.895 |
+| 2 | Reused + batched | 18.667 | 0.960 |
+| 2 | Serial | 17.915 | 1.000 |
+| 4 | Fresh pool | 1066.978 | 0.017 |
+| 4 | Reused pool | 19.272 | 0.963 |
+| 4 | Reused + batched | 11.313 | 1.640 |
+| 4 | Serial | 18.551 | 1.000 |
 
-The fastest task-stage configuration is Reused + batched with 4 workers: 5.119 ms and 2.01x speedup, corresponding to a 50.3% reduction in task-stage elapsed time relative to its serial baseline.
+The fastest task-stage configuration is Reused + batched with 4 workers: 11.313 ms and 1.64x speedup, corresponding to a 39.0% reduction in task-stage elapsed time relative to its serial baseline.
 
-Fresh-pool execution remains much slower than serial execution. The results are consistent with process setup overhead dominating this small workload. Reusing workers substantially reduces elapsed time, and batching further improves the measured task-stage median. The experiment does not separately isolate startup, serialization, scheduling and computation costs.
+With 2 workers, the reused pool takes 20.02 ms and the batched pool 18.67 ms, against a serial baseline of 17.92 ms.
+With 4 workers, the reused pool takes 19.27 ms and the batched pool 11.31 ms, against a serial baseline of 18.55 ms.
+
+Fresh-pool execution remains much slower than serial execution. The results are consistent with process setup and per-task message overhead dominating this small workload; batching reduces the number of messages. The experiment does not separately isolate startup, serialization, scheduling and computation costs.
 
 ## Setup costs and interpretation
 
-- 2 workers: startup plus one full warm-up workload = 0.681 s; shutdown = 0.102 s. These are single measurements, not repeated medians.
-- 4 workers: startup plus one full warm-up workload = 0.755 s; shutdown = 0.107 s. These are single measurements, not repeated medians.
+- 2 workers: startup plus one full warm-up workload = 0.918 s; shutdown = 0.083 s. These are single measurements, not repeated medians.
+- 4 workers: startup plus one full warm-up workload = 1.005 s; shutdown = 0.106 s. These are single measurements, not repeated medians.
 
-Serial execution is preferable for a single invocation of this small analysis. An already prepared persistent pool can improve the task-stage runtime when reused. The reported warm-pool speedup must not be described as an end-to-end application speedup; the total benefit across repeated workloads depends on how setup costs are amortized.
+Serial execution is preferable for a single invocation of this small analysis. A prepared pool only improves the task stage when per-task overhead is amortised, as the batched configuration does here. The reported warm-pool speedup must not be described as an end-to-end application speedup; the total benefit across repeated workloads depends on how setup costs are amortized.
 
 ## Limitations
 

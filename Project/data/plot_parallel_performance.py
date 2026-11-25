@@ -82,12 +82,42 @@ def main():
     for row in summary.itertuples():
         lines.append(f"| {row.comparison_workers} | {LABELS[row.method]} | {row.median_seconds*1000:.3f} | {row.speedup:.3f} |")
     best = summary.loc[summary.speedup.idxmax()]
-    lines += ["", f"The fastest task-stage configuration is {LABELS[best.method]} with {best.workers} workers: {best.median_seconds*1000:.3f} ms and {best.speedup:.2f}x speedup, corresponding to a {(1-1/best.speedup)*100:.1f}% reduction in task-stage elapsed time relative to its serial baseline.", "",
-        "Fresh-pool execution remains much slower than serial execution. The results are consistent with process setup overhead dominating this small workload. Reusing workers substantially reduces elapsed time, and batching further improves the measured task-stage median. The experiment does not separately isolate startup, serialization, scheduling and computation costs.", "",
+
+    def median_ms(method, workers):
+        rows = summary[(summary.method == method) & (summary.comparison_workers == workers)]
+        return float(rows.median_seconds.iloc[0]) * 1000
+
+    group_sentences = []
+    for workers in groups:
+        group_sentences.append(
+            f"With {workers} workers, the reused pool takes "
+            f"{median_ms('reused_pool', workers):.2f} ms and the batched pool "
+            f"{median_ms('reused_pool_batched', workers):.2f} ms, against a "
+            f"serial baseline of {median_ms('serial', workers):.2f} ms."
+        )
+
+    if best.speedup > 1:
+        best_sentence = (
+            f"The fastest task-stage configuration is {LABELS[best.method]} with "
+            f"{best.workers} workers: {best.median_seconds*1000:.3f} ms and "
+            f"{best.speedup:.2f}x speedup, corresponding to a "
+            f"{(1-1/best.speedup)*100:.1f}% reduction in task-stage elapsed time "
+            f"relative to its serial baseline."
+        )
+    else:
+        best_sentence = (
+            "No parallel configuration beats the serial baseline in this run; "
+            "the best median is "
+            f"{best.median_seconds*1000:.3f} ms ({best.speedup:.2f}x)."
+        )
+
+    lines += ["", best_sentence, ""]
+    lines += group_sentences + ["",
+        "Fresh-pool execution remains much slower than serial execution. The results are consistent with process setup and per-task message overhead dominating this small workload; batching reduces the number of messages. The experiment does not separately isolate startup, serialization, scheduling and computation costs.", "",
         "## Setup costs and interpretation", ""]
     for row in setup.itertuples():
         lines.append(f"- {row.workers} workers: startup plus one full warm-up workload = {row.startup_and_warmup_seconds:.3f} s; shutdown = {row.shutdown_seconds:.3f} s. These are single measurements, not repeated medians.")
-    lines += ["", "Serial execution is preferable for a single invocation of this small analysis. An already prepared persistent pool can improve the task-stage runtime when reused. The reported warm-pool speedup must not be described as an end-to-end application speedup; the total benefit across repeated workloads depends on how setup costs are amortized.", "",
+    lines += ["", "Serial execution is preferable for a single invocation of this small analysis. A prepared pool only improves the task stage when per-task overhead is amortised, as the batched configuration does here. The reported warm-pool speedup must not be described as an end-to-end application speedup; the total benefit across repeated workloads depends on how setup costs are amortized.", "",
         "## Limitations", "",
         "These measurements describe one machine, dataset and execution session. Ten repetitions and min-max whiskers describe observed variability, not confidence intervals or statistical significance. Millisecond timings are sensitive to system load. An idle persistent pool remains allocated during serial and fresh-pool measurements. No conclusion about large-scale or distributed scalability follows from this experiment.", "",
         "## Figures", "",

@@ -125,20 +125,112 @@ Interpretation limits:
 - Quantiles depend on the sample and interpolation rule. The analysis does not assume normality or delete extreme observations.
 - Daily changes compare successive available observations and may span weekends or holidays; they are not uniformly spaced 24-hour returns.
 
-## 7. Reproduction and Verification
+## 7. Distribution, Scatter and Volatility Comparison
 
-Run from the project root, using Python with numpy, pandas and matplotlib installed:
+Script: `../data/plot_distributions.py`
+
+Outputs:
+- `../data/analysis_output/figures/daily_change_boxplots.png`: two panels, full observed range and a zoom on the interquartile range. Whiskers are 1.5 x IQR; diamonds are means; dots are outliers.
+- `../data/analysis_output/figures/correlation_scatter_examples.png`: USD-HKD (r = 0.997), CNY-USD (r = 0.910) and CHF-AUD (r = 0.106), with an ordinary least squares line.
+- `../data/analysis_output/figures/volatility_comparison.png`: full-period daily volatility (bars) against the maximum 60-observation rolling volatility (diamonds).
+
+Findings:
+- The boxes are narrow around zero for every currency; JPY has the widest interquartile range.
+- CHF has the largest outliers on both sides: -15.55% and +8.00% log change. The zoom panel keeps the boxes readable and annotates the off-scale extremes.
+- The scatter panels make the difference between a near-deterministic pair (USD-HKD) and a weak pair (CHF-AUD) visible without reading the correlation table.
+- JPY has the highest full-period volatility (0.642%) and the highest 60-day peak (1.256%); CHF has the lowest full-period volatility (0.463%) but the highest 60-day peak (2.108%).
+
+## 8. Rolling-Window Sensitivity
+
+Script: `../data/analyze_window_sensitivity.py`
+
+Outputs:
+- `../data/analysis_output/window_sensitivity_summary.csv`
+- `../data/analysis_output/figures/window_sensitivity.png`
+
+Method:
+- Four pairs (USD-HKD, CNY-USD, AUD-CAD, AUD-JPY) are recomputed with 30, 60 and 120 observations.
+- The summary reports valid windows, mean, sample standard deviation, minimum and maximum of each rolling series.
+
+Findings:
+- The ordering of pair variability is stable across windows: USD-HKD is the least variable and AUD-JPY the most variable.
+- Rolling-correlation standard deviations at 30/60/120 observations:
+  - USD-HKD: 0.012422 / 0.009220 / 0.006790
+  - CNY-USD: 0.119339 / 0.104633 / 0.092181
+  - AUD-CAD: 0.177996 / 0.142143 / 0.106664
+  - AUD-JPY: 0.300936 / 0.259658 / 0.222780
+- Longer windows smooth the series; shorter windows are noisier. The 60-observation choice is a reporting convention, not an estimated optimum.
+
+Interpretation limits:
+- Overlapping windows remain dependent at every window length.
+- The comparison covers four illustrative pairs, not all 28.
+
+## 9. Outlier Sensitivity
+
+Script: `../data/analyze_outlier_sensitivity.py`
+
+Outputs:
+- `../data/analysis_output/outlier_sensitivity_correlations.csv`
+- `../data/analysis_output/outlier_sensitivity_volatility.csv`
+- `../data/analysis_output/figures/outlier_sensitivity.png`
+
+Method:
+- Recompute all 28 correlations and eight daily volatilities after dropping 2015-01-15 (SNB), 2016-06-24 (Brexit), and both dates.
+- The main analysis keeps both dates. This is a sensitivity check, not a replacement sample.
+
+Findings:
+- The Spearman rank correlation between the baseline and outlier-excluded correlation vectors is 0.995621.
+- The largest absolute correlation change is JPY-CHF: 0.366253 to 0.420321 (+0.054067). The next largest are USD-CHF (+0.035404), HKD-CHF (+0.034655) and CNY-CHF (+0.033184), so the change is concentrated in CHF pairs.
+- CHF daily volatility falls from 0.463204% to 0.394378% (-0.068826 percentage points). GBP and JPY fall by about 0.0076 and 0.0071 points; the other currencies change by less than 0.002 points.
+- The overall correlation ranking and the main qualitative conclusions are therefore robust to these two sessions, while the CHF level statistics are not.
+
+Interpretation limits:
+- Dropping two rows cannot remove all event effects.
+- The dates are selected because they are known extreme sessions; this is not a random robustness sample.
+
+## 10. Bootstrap Confidence Intervals
+
+Script: `../data/bootstrap_correlations.py`
+
+Outputs:
+- `../data/analysis_output/correlation_bootstrap_ci.csv`
+- `../data/analysis_output/figures/correlation_bootstrap_ci.png`
+
+Method:
+- Moving-block bootstrap, block length 60, 1,000 replicates, seed 20261122.
+- 2.5th and 97.5th percentiles form an approximate 95% interval for each of the 28 full-period correlations.
+
+Findings:
+- USD-HKD has the narrowest interval: [0.994850, 0.997732].
+- CNY-HKD [0.879132, 0.932916] and CNY-USD [0.876800, 0.932192] are the next strongest and remain clearly separated from the moderate pairs.
+- The weak pairs have wide intervals: JPY-GBP [0.0552, 0.2965], CHF-AUD [0.041023, 0.171181], JPY-AUD [0.075090, 0.225834].
+- The interval width is informative: a point estimate near 0.1 does not establish a precise weak relationship.
+
+Interpretation limits:
+- The block bootstrap is approximate; overlapping windows are not modelled exactly.
+- The intervals describe sampling uncertainty for this sample, not future correlations.
+
+## 11. Reproduction and Verification
+
+Run from the project root, using Python with numpy, pandas, matplotlib and scipy installed:
 
 ```powershell
 python data/analyze_monthly_changes.py
 python data/analyze_extreme_changes.py
+python data/plot_distributions.py
+python data/analyze_window_sensitivity.py
+python data/analyze_outlier_sensitivity.py
+python data/bootstrap_correlations.py
 ```
 
-Prerequisites are the existing cleaned exchange-rate CSV and daily log-return CSV. If absent, run `data/clean_exchange_rates.py` and then `data/calculate_returns.py` first. Both new scripts resolve paths relative to their own location and regenerate their outputs on each run without opening interactive plot windows.
+Prerequisites are the existing cleaned exchange-rate CSV and daily log-return CSV. If absent, run `data/clean_exchange_rates.py` and then `data/calculate_returns.py` first. All scripts resolve paths relative to their own location and regenerate their outputs on each run without opening interactive plot windows.
 
 Verification completed on the current data:
-- Both scripts executed successfully; four CSVs and two PNG figures were produced.
+- All scripts executed successfully; the outputs include the monthly, extreme, distribution, window-sensitivity, outlier-sensitivity and bootstrap CSVs and figures.
 - Monthly compounding matches the ratio of final to initial month-end quotes for all eight currencies.
 - Monthly changes were independently checked against daily log changes recomputed from cleaned rates, summed by month and transformed by exp(sum) - 1, excluding the unavailable first month. The existing daily-return CSV has rounding (maximum absolute log-unit difference about 5e-8 from recomputed values), so it is not used for this strict monthly identity check. Extreme-change analysis consistently uses that existing daily-return CSV.
 - Extreme minima/maxima match the existing descriptive statistics; top-ten magnitudes and event counts were checked against the input daily changes.
+- The scatterplot correlations were recomputed and checked against the saved correlation table.
+- The outlier sensitivity recomputes the baseline correlations and checks them against the saved values (rounding tolerance 1e-6); event dates are required to exist in the sample.
+- The bootstrap checks its baseline correlations against the saved table and uses a fixed seed.
 - Dates are validated as unique and sorted, and required numeric inputs must be finite (exchange-rate levels must also be positive).

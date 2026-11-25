@@ -1,8 +1,8 @@
 key,value
-python,3.14.7
-platform,Windows-11-10.0.26200-SP0
-logical_cpus,18
-numpy,2.5.5
+python,3.11.9
+platform,Windows-10-10.0.22631-SP0
+logical_cpus,16
+numpy,2.4.6
 pandas,3.1.1
 repeats,10
 start_method,spawn

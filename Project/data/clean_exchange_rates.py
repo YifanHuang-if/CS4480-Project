@@ -60,11 +60,21 @@ df = df.replace({
 print("Selected columns:", df.columns.tolist())
 
 
+# The ECB download uses YYYY/MM/DD; some copies use YYYY-MM-DD.
+# Accept both explicitly so the script stays reproducible across downloads.
 parsed_dates = pd.to_datetime(
     df["Date"],
     format="%Y-%m-%d",
     errors="coerce"
 )
+
+if parsed_dates.isna().any():
+    fallback_dates = pd.to_datetime(
+        df["Date"],
+        format="%Y/%m/%d",
+        errors="coerce"
+    )
+    parsed_dates = parsed_dates.fillna(fallback_dates)
 
 invalid_dates = parsed_dates.isna()
 
@@ -111,6 +121,9 @@ print("First available date:", df["Date"].min().date())
 print("Last available date:", df["Date"].max().date())
 
 
+# Record the row count before deduplication for the cleaning summary.
+rows_before_duplicates = len(df)
+
 for currency in CURRENCIES:
     original_values = df[currency]
 
@@ -138,9 +151,6 @@ for currency in CURRENCIES:
         )
 
     df[currency] = numeric_values
-
-
-    rows_before_duplicates = len(df)
 
 # Remove rows whose date and all eight rates are identical.
 df = df.drop_duplicates().copy()
